@@ -1,35 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import './dashboard.css';
+import { fetchMetrics, detectAnomaly } from './anomalydetector'; 
+import WebSocketComponent from './WebSocketComponent'; 
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [popupMessage, setPopupMessage] = useState(null);
-  const [suspiciousActivity, setSuspiciousActivity] = useState(false); 
+  const [suspiciousActivity, setSuspiciousActivity] = useState(false);
+  const [anomalies, setAnomalies] = useState([]);
 
   useEffect(() => {
-    const fetchData = () => {
-      const mockData = {
-        memory: 65,
-        cpu: { gsu1: 40, gsu2: 50, gsu3: 60 },
-        network: 70,
-        costOverview: 45,
-        scalingMethods: 85,
-        costSuggestion: 55,
-        cpuVsNetwork: 75,
-        reports: { report1: 80, report2: 90, report3: 95 },
-      };
-      setTimeout(() => {
-        setData(mockData);
+    const fetchData = async () => {
+      try {
+        // Fetch data from the server using `fetchMetrics`
+        const metricsData = await fetchMetrics();
+        setData(metricsData);
         setLoading(false);
-      }, 1000);
+        
+        // Detect anomalies based on the fetched metrics
+        const detectedAnomalies = detectAnomaly(metricsData);
+        setAnomalies(detectedAnomalies);
+      } catch (error) {
+        console.error("Error fetching metrics:", error);
+        setLoading(false);
+      }
     };
 
     fetchData();
 
+    // Suspicious behavior detection logic
     let clickCount = 0;
     let keyPressCount = 0;
-    const suspiciousThreshold = 5; 
+    const suspiciousThreshold = 5;
+
     const detectSuspiciousBehavior = () => {
       if (clickCount >= suspiciousThreshold || keyPressCount >= suspiciousThreshold) {
         setSuspiciousActivity(true);
@@ -62,6 +66,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (suspiciousActivity) {
       console.log('Reporting suspicious activity to backend...');
+      // Logic to report suspicious activity to the backend
       setTimeout(() => {
         setSuspiciousActivity(false);
         setPopupMessage('Suspicious activity resolved.');
@@ -154,10 +159,31 @@ const Dashboard = () => {
               <p><b>{data.reports.report3}%</b></p>
             </div>
           </div>
+
+          <div className="item large">
+            <h2>Anomalies Detected</h2>
+            <ul>
+              {anomalies.length > 0 ? (
+                anomalies.map((anomaly, index) => (
+                  <li key={index}>{anomaly}</li>
+                ))
+              ) : (
+                <li>No anomalies detected</li>
+              )}
+            </ul>
+          </div>
         </div>
       </section>
+
+      <WebSocketComponent />
     </div>
   );
 };
 
 export default Dashboard;
+
+
+    
+    
+
+ 
